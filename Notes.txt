@@ -1,0 +1,13 @@
+Steps:
+
+Register
+Login
+App
+Api 
+
+For frontend:
+ReactJs, MaterialUI
+
+For backend:
+NodeJs, ExpressJs, MongoDB, Socket io
+
