@@ -1,16 +1,26 @@
+import { useEffect, useState, useContext, useRef } from "react";
 import { Box, Typography, Paper } from "@mui/material";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
-import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { StoreContext } from "../store";
-import { jwtDecode } from 'jwt-decode'
+import { jwtDecode } from 'jwt-decode';
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:8080");
 
 const ChatArea = ({ selectedUser }) => {
   const [token] = useContext(StoreContext);
-  const [messages, setMessages] = useState([]);
   const decoded = jwtDecode(token);
   const user = { _id: decoded.user.id };
+  const [messages, setMessages] = useState([]);
+  const messagesEndRef = useRef();
+
+  useEffect(() => {
+    if (user?._id) {
+      socket.emit("join", user._id);
+    }
+  }, [user?._id]);
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -30,43 +40,42 @@ const ChatArea = ({ selectedUser }) => {
     fetchMessages();
   }, [selectedUser]);
 
-  const handleSend = async (text) => {
-    if (!selectedUser) return;
-    try {
-      const response = await axios.post(
-        "http://localhost:8080/addmsg",
-        {
-          receiverId: selectedUser._id,
-          text,
-        },
-        {
-          headers: {
-            "x-token": token,
-          },
-        }
-      );
-      setMessages((prev) => [...prev, response.data]);
+  useEffect(() => {
+    const handleReceive = (msg) => {
+      const isInCurrentChat =
+        (msg.sender === user._id && msg.receiver === selectedUser._id) ||
+        (msg.sender === selectedUser._id && msg.receiver === user._id);
+  
+      if (isInCurrentChat) {
+        setMessages((prev) => [...prev, msg]);
+      }
+    };
+  
+    socket.on("receive-message", handleReceive);
+    return () => socket.off("receive-message", handleReceive);
+  }, [user?._id, selectedUser?._id]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async (text) => {
+    if (text.trim() === "") return;
+
+    try {
+      await axios.post("http://localhost:8080/addmsg", {
+        receiverId: selectedUser._id,
+        text,
+      }, {
+        headers: { "x-token": token },
+      });
     } catch (err) {
-      console.error("Failed to send message", err);
+      console.error("Send message error:", err);
     }
   };
 
-  if (!selectedUser || !user) {
-    return (
-      <Box
-        sx={{
-          flexGrow: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#666",
-          fontSize: 18,
-        }}
-      >
-        Please select a user to start chatting.
-      </Box>
-    );
+  if (!user || !selectedUser) {
+    return <Box sx={{ p: 2 }}>Loading...</Box>;
   }
 
   return (
@@ -110,9 +119,9 @@ const ChatArea = ({ selectedUser }) => {
                 </Typography>
               </Paper>
             </Box>
-
           );
         })}
+        <div ref={messagesEndRef} />
       </Box>
       <MessageInput onSend={handleSend} />
     </Box>

@@ -6,13 +6,41 @@ import cors from 'cors'
 import RegisterUser from './model.js'
 import auth from './middleware.js'
 import Message from './messageModel.js'
+import http from 'http'
+import { Server } from 'socket.io'
 
 const app = express()
+app.use(cors());
+app.use(express.json());
 dotenv.config()
 
-app.use(express.json())
+const server = http.createServer(app)
 
-app.use(cors({origin: "*"}))
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"]
+  }
+})
+
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("join", (userId) => {
+    console.log("Joining room:", userId);
+    socket.join(userId);
+  });
+
+  socket.on("send-message", (data) => {
+    const { receiver, text, sender, createdAt } = data;
+    console.log(`Message from ${sender} to ${receiver}: ${text}`);
+    io.to(receiver).emit("receive-message", { sender, receiver, text, createdAt });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
@@ -92,6 +120,10 @@ app.post('/addmsg', auth, async (req, res) => {
     });
 
     await newMessage.save();
+
+    io.to(receiverId).emit("receive-message", newMessage);
+    io.to(req.user.id).emit("receive-message", newMessage);
+
     res.json(newMessage);
   } catch (err) {
     console.log(err);
@@ -126,4 +158,4 @@ app.get('/users', auth, async (req, res) => {
 });
 
 
-app.listen(process.env.PORT, () => console.log("Server running on port", process.env.PORT))
+server.listen(process.env.PORT || 8080, () => console.log("Server running on port", process.env.PORT))
