@@ -13,7 +13,7 @@ const MessageInput = ({ onSend }) => {
   };
 
   return (
-    <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
+    <Box sx={{ p: 1, display: "flex", alignItems: "center", gap: 1, bgcolor: "#fff" }}>
       <TextField
         fullWidth
         size="small"

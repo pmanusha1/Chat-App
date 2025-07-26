@@ -7,7 +7,7 @@ const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
 
   return (
-    <Box sx={{ display: "flex", height: "100vh" }}>
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden", }}>
       <SideBar onSelectUser={setSelectedUser} />
       <ChatArea selectedUser={selectedUser} />
     </Box>

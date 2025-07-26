@@ -11,10 +11,20 @@ const socket = io("http://localhost:8080");
 
 const ChatArea = ({ selectedUser }) => {
   const [token] = useContext(StoreContext);
-  const decoded = jwtDecode(token);
-  const user = { _id: decoded.user.id };
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef();
+
+  let user = null;
+
+  if (typeof token === "string") {
+    try {
+      const decoded = jwtDecode(token);
+      user = { _id: decoded.user.id };
+    } catch (err) {
+      console.error("Invalid token", err);
+      user = null;
+    }
+  }
 
   useEffect(() => {
     if (user?._id) {
@@ -75,13 +85,17 @@ const ChatArea = ({ selectedUser }) => {
   };
 
   if (!user || !selectedUser) {
-    return <Box sx={{ p: 2 }}>Loading...</Box>;
+    return (
+      <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Typography>Select a user to start chat</Typography>
+      </Box>
+    );
   }
 
   return (
-    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", height: "100vh" }}>
+    <Box sx={{ flexGrow: 1, overflow: "hidden", display: "flex", flexDirection: "column"}}>
       <ChatHeader selectedUser={selectedUser} />
-      <Box sx={{ flexGrow: 1, p: 2, overflowY: "auto" }}>
+      <Box sx={{ flexGrow: 1, p: 2, overflowY: "auto", minHeight: 0, }}>
         {messages.map((msg, index) => {
           const senderId = typeof msg.sender === "object" ? msg.sender._id : msg.sender;
           const isOwnMessage = senderId === user?._id;
