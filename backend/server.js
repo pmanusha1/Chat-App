@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 import cors from 'cors'
 import RegisterUser from './model.js'
 import auth from './middleware.js'
-import message from './messageModel.js'
+import Message from './messageModel.js'
 
 const app = express()
 dotenv.config()
@@ -22,29 +22,18 @@ app.get('/', (req, res) => {
   res.send("Chat app")
 })
 
+
 app.post('/register', async (req, res) => {
   try {
     const { username, email, password, confirmpassword } = req.body
 
-    let exist = await RegisterUser.findOne({ email })
-    if (exist) {
-      return res.status(400).send("User already exists")
-    }
+    const exist = await RegisterUser.findOne({ email })
+    if (exist) return res.status(400).send("User already exists")
+    if (password !== confirmpassword) return res.status(400).send('Passwords do not match')
 
-    if (password !== confirmpassword) {
-      return res.status(400).send('Passwords do not match')
-    }
-
-    let newUser = new RegisterUser({
-      username,
-      email,
-      password,
-      confirmpassword
-    })
-
+    const newUser = new RegisterUser({ username, email, password, confirmpassword })
     await newUser.save()
     res.status(200).send('Registered Successfully')
-
   } catch (error) {
     console.error(error)
     res.status(500).send('Internal server error')
@@ -64,13 +53,15 @@ app.post('/login', async (req, res) => {
             return res.status(400).send("Invalid credentials")
         }
 
-        let payload = {
-            user: {
-                id: exist._id
-            }
-        }
+        const payload = {
+          user: {
+            id: exist._id,
+            username: exist.username,
+            email: exist.email
+          }
+        };
 
-        jwt.sign(payload, 'jwtSecret', {expiresIn: 3600000}, (err, token) => {
+        jwt.sign(payload, 'jwtSecret', {expiresIn: '1h'}, (err, token) => {
             if (err) throw err;
             return res.json({token})
         })
@@ -82,52 +73,57 @@ app.post('/login', async (req, res) => {
 })
 
 app.get('/myprofile', auth, async (req, res) => {
-    try {
-        let exist = await RegisterUser.findById(req.user.id)
-
-        if(!exist) {
-            return res.status(400).send("User not found")
-        }
-        res.json(exist)
-        
-    } catch (error) {
-        console.log(error)
-        return res.status(500).send("Server Error")
-    }
-})
+  try {
+    const user = await RegisterUser.findById(req.user.id).select('-password');
+    res.json(user);
+  } catch (err) {
+    res.status(500).send("Server error");
+  }
+});
 
 app.post('/addmsg', auth, async (req, res) => {
   try {
-    const { text } = req.body;
-    const exist = await RegisterUser.findById(req.user.id)
+    const { receiverId, text } = req.body;
 
-    const newmsg = new message({
-      user: req.user.id,
-      username: exist.username,
+    const newMessage = new Message({
+      sender: req.user.id,
+      receiver: receiverId,
       text
-    })
+    });
 
-    await newmsg.save()
-
-    let allmsg = await message.find()
-
-    return res.json(allmsg)
-
-  } catch (error) {
-    console.log(error)
-    return res.status(500).send("Server Error")
+    await newMessage.save();
+    res.json(newMessage);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Server error");
   }
-})
+});
 
-app.get('/getmsg', auth, async (req, res) => {
+app.get('/getmsg/:id', auth, async (req, res) => {
   try {
-    let allmsg = await message.find()
-    return res.json(allmsg)
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.id, receiver: req.params.id },
+        { sender: req.params.id, receiver: req.user.id }
+      ]
+    }).sort({ createdAt: 1 });
 
-  } catch (error) {
-    console.log(error)
-    return res.status(500).send('Server Error')
+    res.json(messages);
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Server error");
   }
-})
+});
+
+app.get('/users', auth, async (req, res) => {
+  try {
+    const users = await RegisterUser.find({ _id: { $ne: req.user.id } });
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
 
 app.listen(process.env.PORT, () => console.log("Server running on port", process.env.PORT))

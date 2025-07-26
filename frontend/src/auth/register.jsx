@@ -25,13 +25,22 @@ const Register = () => {
     }
 
     const submitHandler = (e) => {
-        e.preventDefault()
-        axios.post('http://localhost:8080/register', data).then(res => alert(res.data))
-    }
+        e.preventDefault();
+    
+        axios.post('http://localhost:8080/register', data)
+            .then(res => {
+                navigate('/login');
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Registration failed. Please try again.");
+            });
+    };
+    
 
     return (
         <Container maxWidth="sm">
-            <Paper sx={{ bgcolor: '#57B9FF', height: '100%' }}>
+            <Paper sx={{ bgcolor: '#042a78', height: '100%' }}>
                 <Box sx={{ p: 2, textAlign: "center" }}>
                     <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
                         <svg
@@ -62,8 +71,8 @@ const Register = () => {
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
                         >
-                            <circle cx="0" cy="0" r="2" fill="currentColor"></circle>
-                            <g stroke="currentColor" strokeWidth="1" fill="none">
+                            <circle cx="0" cy="0" r="2" fill="white"></circle>
+                            <g stroke="white" strokeWidth="1" fill="none">
                                 <ellipse rx="10" ry="4.5"></ellipse>
                                 <ellipse rx="10" ry="4.5" transform="rotate(60)"></ellipse>
                                 <ellipse rx="10" ry="4.5" transform="rotate(120)"></ellipse>
@@ -71,10 +80,10 @@ const Register = () => {
                         </svg>
                     </Box>
                 </Box>
-                <Typography variant="h4" component="h1" align="center" sx={{fontWeight: '500', textTransform: "uppercase"}} gutterBottom>
+                <Typography variant="h4" component="h1" align="center" sx={{color:'white', fontWeight: '500', textTransform: "uppercase"}} gutterBottom>
                     Chat App
                 </Typography>
-                <Typography variant="body1" align="center" color="text.secondary" paragraph>
+                <Typography variant="body1" align="center" color="white" paragraph>
                     Connect instantly with friends and colleagues in a fast, responsive chat experience.
                     Enjoy real-time messaging powered by modern web technologies.
                 </Typography>
@@ -136,7 +145,7 @@ const Register = () => {
                         fullWidth
                         variant="contained"
                         size="large"
-                        sx={{ mt: 3, mb: 2, bgcolor: "#57B9FF" }}
+                        sx={{ mt: 3, mb: 2, bgcolor: "#042a78" }}
                         onClick={submitHandler}
                     >
                         Register
