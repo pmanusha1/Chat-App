@@ -5,6 +5,7 @@ import Login from './auth/login'
 import Register from './auth/register'
 import MyProfile from './auth/myprofile'
 import { store } from './store'
+import ChatPage from './chat/ChatPage'
 
 const App = () => {
 
@@ -18,6 +19,7 @@ const App = () => {
           <Route path='/login' element={<Login />} />
           <Route path='/register' element={<Register />} />
           <Route path='/myprofile' element={<MyProfile />} />
+          <Route path='/chat' element={<ChatPage />} />
         </Routes>
       </BrowserRouter>
     </store.Provider>

@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import cors from 'cors'
 import RegisterUser from './model.js'
 import auth from './middleware.js'
+import message from './messageModel.js'
 
 const app = express()
 dotenv.config()
@@ -93,6 +94,40 @@ app.get('/myprofile', auth, async (req, res) => {
         console.log(error)
         return res.status(500).send("Server Error")
     }
+})
+
+app.post('/addmsg', auth, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const exist = await RegisterUser.findById(req.user.id)
+
+    const newmsg = new message({
+      user: req.user.id,
+      username: exist.username,
+      text
+    })
+
+    await newmsg.save()
+
+    let allmsg = await message.find()
+
+    return res.json(allmsg)
+
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send("Server Error")
+  }
+})
+
+app.get('/getmsg', auth, async (req, res) => {
+  try {
+    let allmsg = await message.find()
+    return res.json(allmsg)
+
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send('Server Error')
+  }
 })
 
 app.listen(process.env.PORT, () => console.log("Server running on port", process.env.PORT))
